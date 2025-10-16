@@ -1,0 +1,9 @@
+name = "tcr"
+version = "0.1.0"
+defaultTargets = ["TCR"]
+
+[leanOptions]
+experimental.module = true
+
+[[lean_lib]]
+name = "TCR"
