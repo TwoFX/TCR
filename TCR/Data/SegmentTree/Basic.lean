@@ -124,7 +124,7 @@ theorem underlying_modify {op : α → α → α} {v : Vector α (2 * n)} {i : N
     ext j hj
     simp [Vector.getElem_modify]
   intro vec idx hidx
-  fun_induction modify.loop with  grind [underlying]
+  fun_induction modify.loop with grind [underlying]
 
 theorem IsSegmentTree.modify {op : α → α → α} {neutral : α} {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v)
     {i : Nat} (hi : i < n) (f : α → α) : IsSegmentTree op neutral (modify op v i hi f) := by
