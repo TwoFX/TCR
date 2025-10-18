@@ -124,11 +124,7 @@ theorem underlying_modify {op : α → α → α} {v : Vector α (2 * n)} {i : N
     ext j hj
     simp [Vector.getElem_modify]
   intro vec idx hidx
-  fun_induction modify.loop with
-  | case1 => rfl
-  | case2 vec idx hidx hidx' ih =>
-    rw [ih, underlying, underlying, Vector.cast_eq_cast, Vector.cast_rfl,
-      Vector.extract_set, dif_pos (by grind)]
+  fun_induction modify.loop with  grind [underlying]
 
 theorem IsSegmentTree.modify {op : α → α → α} {neutral : α} {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v)
     {i : Nat} (hi : i < n) (f : α → α) : IsSegmentTree op neutral (modify op v i hi f) := by
@@ -138,16 +134,6 @@ where
   loop {vec : Vector α (2 * n)} {idx hidx₀ hidx} (h₀ : vec[0] = neutral)
       (h : ∀ (i : Nat) (_ : 0 < i) (hi : i < n) (_ : i ≠ idx), vec[i] = op vec[2 * i] vec[2 * i + 1]) :
       IsSegmentTree op neutral (modify.loop op i hi vec idx hidx) := by
-    fun_induction modify.loop with
-    | case1 vec h₁ => exact ⟨by simp [h₀], fun j hj hj' => h _ hj hj' (by omega)⟩
-    | case2 vec idx hidx h' ih =>
-      apply ih
-      · rw [Vector.getElem_set_ne _ _ (by omega), h₀]
-      · intro j hj hj' hj''
-        conv => rhs; rw [Vector.getElem_set_ne _ _ (by omega), Vector.getElem_set_ne _ _ (by omega)]
-        rw [Vector.getElem_set]
-        split <;> rename_i hj₀
-        · exact hj₀ ▸ rfl
-        · exact h _ hj hj' (Ne.symm hj₀)
+    fun_induction modify.loop with grind [IsSegmentTree]
 
 end TCR
