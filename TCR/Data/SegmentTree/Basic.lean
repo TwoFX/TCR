@@ -53,11 +53,10 @@ where
       · rw [Vector.getElem_set_ne _ _ (by omega), h₀]
       · rw [Vector.getElem_set]
         split
-        · rename_i h
-          subst h
-          rw [Vector.getElem_set_ne _ _ (by omega), Vector.getElem_set_ne _ _ (by omega)]
-        · rw [Vector.getElem_set_ne _ _ (by omega), Vector.getElem_set_ne _ _ (by omega)]
-          apply h <;> omega
+        · rename_i hx
+          subst hx
+          grind [Vector.getElem_set_ne]
+        · grind [Vector.getElem_set_ne]
 
 /-- Given a segment tree, extracts the underlying data by copying it. -/
 def underlying (v : Vector α (2 * n)) : Vector α n :=
