@@ -107,56 +107,47 @@ theorem IsSegmentTree.underlying_inj (v v' : Vector α (2 * n))
 property. -/
 @[inline]
 def modify (op : α → α → α) (v : Vector α (2 * n)) (i : Nat) (hi : i < n) (f : α → α) : Vector α (2 * n) :=
-  loop (v.modify (n + i) f) (n + i) (by omega) (by omega)
+  loop (v.modify (n + i) f) ((n + i) / 2) (by omega)
 where
-  @[specialize] loop (vec : Vector α (2 * n)) (idx : Nat) (hidx₀ : idx ≠ 0) (hidx : idx < 2 * n) : Vector α (2 * n) :=
-    if h : idx = 1 then
+  @[specialize] loop (vec : Vector α (2 * n)) (idx : Nat) (hidx : idx < n) : Vector α (2 * n) :=
+    if h : idx = 0 then
       vec
     else
-      loop (vec.set (idx / 2) (op vec[idx] (vec[idx ^^^ 1]'(by grind [Nat.xor_one_eq])))) (idx / 2) (by omega) (by omega)
+      loop (vec.set idx (op vec[2 * idx] vec[2 * idx + 1])) (idx / 2) (by omega)
 
 @[simp]
 theorem underlying_modify {op : α → α → α} {v : Vector α (2 * n)} {i : Nat} {hi : i < n} {f : α → α} :
     underlying (modify op v i hi f) = (underlying v).modify i f := by
-  suffices ∀ (vec : Vector α (2 * n)) idx hidx₀ hidx, underlying (modify.loop op i hi f vec idx hidx₀ hidx) = underlying vec by
+  suffices ∀ (vec : Vector α (2 * n)) idx hidx, underlying (modify.loop op i hi vec idx hidx) = underlying vec by
     simp only [modify, this]
     simp only [underlying, Vector.modify_cast, Vector.cast_eq_cast, Vector.cast_rfl]
     ext j hj
     simp [Vector.getElem_modify]
-  intro vec idx hidx₀ hidx
+  intro vec idx hidx
   fun_induction modify.loop with
   | case1 => rfl
-  | case2 vec idx hidx₀ hidx hidx' ih =>
+  | case2 vec idx hidx hidx' ih =>
     rw [ih, underlying, underlying, Vector.cast_eq_cast, Vector.cast_rfl,
       Vector.extract_set, dif_pos (by grind)]
 
-theorem IsSegmentTree.modify {op : α → α → α} [Std.Commutative op] {neutral : α} {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v)
+theorem IsSegmentTree.modify {op : α → α → α} {neutral : α} {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v)
     {i : Nat} (hi : i < n) (f : α → α) : IsSegmentTree op neutral (modify op v i hi f) := by
   rw [TCR.modify]
   apply loop <;> grind [Vector.getElem_modify_of_ne, IsSegmentTree.zero_eq, IsSegmentTree.op_eq]
 where
   loop {vec : Vector α (2 * n)} {idx hidx₀ hidx} (h₀ : vec[0] = neutral)
-      (h : ∀ (i : Nat) (_ : 0 < i) (hi : i < n) (_ : i ≠ idx / 2), vec[i] = op vec[2 * i] vec[2 * i + 1]) :
-      IsSegmentTree op neutral (modify.loop op i hi f vec idx hidx₀ hidx) := by
+      (h : ∀ (i : Nat) (_ : 0 < i) (hi : i < n) (_ : i ≠ idx), vec[i] = op vec[2 * i] vec[2 * i + 1]) :
+      IsSegmentTree op neutral (modify.loop op i hi vec idx hidx) := by
     fun_induction modify.loop with
-    | case1 vec h₁ h₂ => exact ⟨by simp [h₀], fun j hj hj' => h _ hj hj' (by omega)⟩
-    | case2 vec idx hidx₀ hidx h' ih =>
+    | case1 vec h₁ => exact ⟨by simp [h₀], fun j hj hj' => h _ hj hj' (by omega)⟩
+    | case2 vec idx hidx h' ih =>
       apply ih
       · rw [Vector.getElem_set_ne _ _ (by omega), h₀]
       · intro j hj hj' hj''
         conv => rhs; rw [Vector.getElem_set_ne _ _ (by omega), Vector.getElem_set_ne _ _ (by omega)]
         rw [Vector.getElem_set]
         split <;> rename_i hj₀
-        · subst hj₀
-          simp only [Nat.xor_one_eq]
-          have := Nat.div_add_mod n 2
-          split <;> rename_i hidx2
-          · have : idx = 2 * (idx / 2) := by grind
-            grind
-          · have : idx = 2 * (idx / 2) + 1 := by grind
-            rw [Std.Commutative.comm (op := op)]
-            congr
-            grind
-        · exact h _ hj hj' (by omega)
+        · exact hj₀ ▸ rfl
+        · exact h _ hj hj' (Ne.symm hj₀)
 
 end TCR
