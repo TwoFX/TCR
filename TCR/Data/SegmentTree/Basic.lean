@@ -24,7 +24,7 @@ public structure IsSegmentTree (op : α → α → α) (neutral : α) (v : Vecto
   /-- The unused zero-th element of `v` is the neutral element, to ensure that segment trees on
   a given underlying array are unique. -/
   zero_eq : ∀ (h : 0 < 2 * n), v[0] = neutral
-  /-- Given `0 < i < n`, `v[i] = op v[2 * i + 1] v[2 * i + 2]`. -/
+  /-- Given `0 < i < n`, `v[i] = op v[2 * i] v[2 * i + 1]`, i.e., a node stores the combination of its children. -/
   op_eq : ∀ (i : Nat) (_ : 0 < i) (hi : i < n), v[i] = op v[2 * i] v[2 * i + 1]
 
 /-- Creates a new `op`-segment tree on the vector `v`. -/
