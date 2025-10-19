@@ -47,10 +47,6 @@ theorem isFold_iff {op : α → α → α} {neutral : α} {v : Vector α k} {l r
 theorem IsFold.base {op : α → α → α} {neutral : α} {v : Vector α k} {l} : IsFold op neutral v l l neutral := by
   simp [isFold_iff, Vector.extract_eq_cast_empty (Nat.min_le_left l k)]
 
-theorem Array.extract_eq_extract_append_extract (l r : Nat) {a : Array α} (m : Nat) (hl : l ≤ m) (hr : m ≤ r) :
-    a.extract l r = a.extract l m ++ a.extract m r := by
-  rw [Array.extract_append_extract, Nat.min_eq_left hl, Nat.max_eq_right hr]
-
 theorem IsFold.concat {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
     {v : Vector α k} {l m r} {a b : α} (hlm : l ≤ m) (hmr : m ≤ r) :
     IsFold op neutral v l m a → IsFold op neutral v m r b → IsFold op neutral v l r (op a b) := by
