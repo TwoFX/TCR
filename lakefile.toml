@@ -1,9 +1,13 @@
 name = "tcr"
 version = "0.1.0"
 defaultTargets = ["TCR"]
+testDriver = "TCRTest"
 
 [leanOptions]
 experimental.module = true
 
 [[lean_lib]]
 name = "TCR"
+
+[[lean_lib]]
+name = "TCRTest"
