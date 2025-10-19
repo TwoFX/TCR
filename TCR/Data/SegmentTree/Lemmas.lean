@@ -78,22 +78,22 @@ theorem underlying_mkEmpty {neutral : α} {n : Nat} : underlying (mkEmpty neutra
 end Impl
 
 @[simp]
-theorem underlying_ofVector {op : α → α → α} {neutral : α} {v : Vector α n} :
+public theorem underlying_ofVector {op : α → α → α} {neutral : α} {v : Vector α n} :
     (SegmentTree.ofVector op neutral v).underlying = v :=
   Impl.underlying_mkSegmentTree
 
 @[simp]
-theorem underlying_modify {op : α → α → α} {neutral : α} {t : SegmentTree op neutral n}
+public theorem underlying_modify {op : α → α → α} {neutral : α} {t : SegmentTree op neutral n}
     {i : Nat} {hi : i < n} {f : α → α} : (t.modify i hi f).underlying = t.underlying.modify i f :=
   Impl.underlying_modify
 
 @[simp]
-theorem underlying_empty {op : α → α → α} {neutral : α} {n : Nat} :
+public theorem underlying_empty {op : α → α → α} {neutral : α} {n : Nat} :
     (empty op neutral n).underlying = Vector.replicate n neutral :=
   Impl.underlying_mkEmpty
 
 @[ext]
-protected theorem ext {op : α → α → α} {neutral : α} [Std.LawfulRightIdentity op neutral]
+public protected theorem ext {op : α → α → α} {neutral : α} [Std.LawfulRightIdentity op neutral]
     {t t' : SegmentTree op neutral n} : t.underlying = t'.underlying → t = t' := by
   rcases t with ⟨t, ht⟩
   rcases t' with ⟨t', ht'⟩
