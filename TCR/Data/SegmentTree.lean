@@ -6,3 +6,6 @@ Authors: Markus Himmel
 module
 
 public import TCR.Data.SegmentTree.Basic
+public import TCR.Data.SegmentTree.Lemmas
+public import TCR.Data.SegmentTree.WF
+public import TCR.Data.SegmentTree.Query

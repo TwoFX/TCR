@@ -5,14 +5,22 @@ Authors: Markus Himmel
 -/
 module
 
-import TCR.Data.Vector
-import TCR.Data.Nat
+public import TCR.Data.Vector
 
-namespace TCR
+/-!
+# Segment trees
+
+This file defines *segment trees*, following the approach described in the article
+[efficient and easy segment trees](https://codeforces.com/blog/entry/18051).
+-/
+
+namespace TCR.SegmentTree
+
+namespace Impl
 
 /-- A vector of size `2 * n` is an `op`-segment tree if, when interpreted as a binary tree,
 it satisfies the heap-like property that the parent is always the `op` of the children. -/
-structure IsSegmentTree (op : α → α → α) (neutral : α) (v : Vector α (2 * n)) : Prop where
+public structure IsSegmentTree (op : α → α → α) (neutral : α) (v : Vector α (2 * n)) : Prop where
   /-- The unused zero-th element of `v` is the neutral element, to ensure that segment trees on
   a given underlying array are unique. -/
   zero_eq : ∀ (h : 0 < 2 * n), v[0] = neutral
@@ -33,74 +41,15 @@ where
     | 0 => vec
     | idx' + 1 => loop (vec.set (idx' + 1) (op vec[2 * (idx' + 1)] vec[2 * (idx' + 1) + 1])) idx' (by grind)
 
-theorem isSegmentTree_mkSegmentTree {op : α → α → α} {neutral : α} {v : Vector α n} :
-    IsSegmentTree op neutral (mkSegmentTree op neutral v) := by
-  rw [mkSegmentTree]
-  split
-  · refine ⟨by simp_all, by simp_all⟩
-  · refine loop _ _ ?_ (by grind)
-    simp_all [Array.getElem_append]
-where
-  loop {vec : Vector α (2 * n)} (idx : Nat) (hidx : idx < n)
-      (h₀ : vec[0] = neutral)
-      (h : ∀ idx', 0 < idx' → idx < idx' → (h : idx' < n) →
-        vec[idx'] = op vec[2 * idx'] vec[2 * idx' + 1]) :
-      IsSegmentTree op neutral (mkSegmentTree.loop op vec idx hidx) := by
-    fun_induction mkSegmentTree.loop with
-    | case1 => exact ⟨by simp_all, by simpa using h⟩
-    | case2 vec idx' hidx ih =>
-      refine ih ?_ (fun idx'' h₁ h₂ h₃ => ?_)
-      · rw [Vector.getElem_set_ne _ _ (by omega), h₀]
-      · rw [Vector.getElem_set]
-        split
-        · rename_i hx
-          subst hx
-          grind [Vector.getElem_set_ne]
-        · grind [Vector.getElem_set_ne]
+/-- Creates an empty segment tree using the neutral element `neutral`. -/
+@[inline]
+def mkEmpty (neutral : α) (n : Nat) : Vector α (2 * n) :=
+  Vector.replicate (2 * n) neutral
 
 /-- Given a segment tree, extracts the underlying data by copying it. -/
+@[inline]
 def underlying (v : Vector α (2 * n)) : Vector α n :=
   v.extract n (2 * n) |>.cast <| by grind
-
-theorem getElem_eq_getElem_underlying {v : Vector α (2 * n)} {i : Nat} {hi : i < 2 * n} (hi' : n ≤ i) :
-    v[i] = (underlying v)[i - n] := by
-  simp [underlying]
-  grind
-
-theorem getElem?_eq_getElem?_underlying {v : Vector α (2 * n)} {i : Nat} (hi' : n ≤ i) :
-    v[i]? = (underlying v)[i - n]? := by
-  simp [underlying]
-  grind [Vector.getElem?_extract]
-
-@[simp]
-theorem underlying_mkSegmentTree {op : α → α → α} {neutral : α} {v : Vector α n} :
-    underlying (mkSegmentTree op neutral v) = v := by
-  rw [mkSegmentTree]
-  split
-  · simp_all [underlying]
-  suffices ∀ (vec : Vector α (2 * n)) idx hidx,
-      (mkSegmentTree.loop op vec idx hidx).extract n (2 * n) = vec.extract n (2 * n) by
-    simp [underlying, this]
-    grind
-  intro vec idx hidx
-  fun_induction mkSegmentTree.loop <;> grind
-
-theorem IsSegmentTree.underlying_inj (v v' : Vector α (2 * n))
-    (hv : IsSegmentTree op neutral v) (hv' : IsSegmentTree op neutral v')
-    (h : underlying v = underlying v') : v = v' := by
-  suffices ∀ i, (h : i < n - 1) → v[n - i - 1] = v'[n - i - 1] by
-    ext i hi
-    have := this (n - i - 1)
-    have := hv.zero_eq
-    have := hv'.zero_eq
-    grind [getElem_eq_getElem_underlying]
-  intro i hi
-  induction i using Nat.strongRecOn with
-  | ind i ih =>
-    rw [hv.op_eq _ (by grind) (by grind), hv'.op_eq _ (by grind) (by grind)]
-    have := ih (2 * i + 1 - n)
-    have := ih (2 * i - n)
-    grind (splits := 12) [getElem_eq_getElem_underlying]
 
 /-- Modifies the underlying array of the segment tree at position `i` using `f` and restores the segment tree
 property. -/
@@ -114,25 +63,70 @@ where
     else
       loop (vec.set idx (op vec[2 * idx] vec[2 * idx + 1])) (idx / 2) (by omega)
 
-@[simp]
-theorem underlying_modify {op : α → α → α} {v : Vector α (2 * n)} {i : Nat} {hi : i < n} {f : α → α} :
-    underlying (modify op v i hi f) = (underlying v).modify i f := by
-  suffices ∀ (vec : Vector α (2 * n)) idx hidx, underlying (modify.loop op i hi vec idx hidx) = underlying vec by
-    simp only [modify, this]
-    simp only [underlying, Vector.modify_cast, Vector.cast_eq_cast, Vector.cast_rfl]
-    ext j hj
-    simp [Vector.getElem_modify]
-  intro vec idx hidx
-  fun_induction modify.loop with grind [underlying]
-
-theorem IsSegmentTree.modify {op : α → α → α} {neutral : α} {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v)
-    {i : Nat} (hi : i < n) (f : α → α) : IsSegmentTree op neutral (modify op v i hi f) := by
-  rw [TCR.modify]
-  apply loop <;> grind [Vector.getElem_modify_of_ne, IsSegmentTree.zero_eq, IsSegmentTree.op_eq]
+/-- Folds the operation over `underlying[l...<r]`. -/
+@[inline]
+def query (op : α → α → α) (neutral : α) (v : Vector α (2 * n)) (l r : Nat) (hlr : l ≤ r) (hr : r ≤ n) : α :=
+  loop (l + n) (r + n) neutral neutral (by omega) (by omega)
 where
-  loop {vec : Vector α (2 * n)} {idx hidx₀ hidx} (h₀ : vec[0] = neutral)
-      (h : ∀ (i : Nat) (_ : 0 < i) (hi : i < n) (_ : i ≠ idx), vec[i] = op vec[2 * i] vec[2 * i + 1]) :
-      IsSegmentTree op neutral (modify.loop op i hi vec idx hidx) := by
-    fun_induction modify.loop with grind [IsSegmentTree]
+  @[specialize] loop (l r : Nat) (resl resr : α) (hlr : l ≤ r) (hr : r ≤ 2 * n) : α :=
+    if h : l < r then
+      let resl := if l % 2 = 0 then resl else op resl (v[l]'(by grind))
+      let resr := if r % 2 = 0 then resr else op (v[r - 1]'(by grind)) resr
+      loop ((l + 1) / 2) (r / 2) resl resr (by grind) (by grind)
+    else
+      op resl resr
 
-end TCR
+/-- Inductive well-formedness predicate for segment trees. In `TCR.Data.SegmentTree.WF` we show that the first
+constructors subsumes all other ones, i.e., that all operations preserve the segment tree property, see
+`Impl.WF.out`. -/
+public protected inductive WF (op : α → α → α) (neutral : α) : Vector α (2 * n) → Prop where
+  | isSegmentTree : IsSegmentTree op neutral v → Impl.WF op neutral v
+  | private mkSegmentTree : Impl.WF op neutral (mkSegmentTree op neutral v)
+  | private mkEmpty : Impl.WF op neutral (mkEmpty neutral n)
+  | private modify : Impl.WF op neutral v → Impl.WF op neutral (modify op v i hi f)
+
+end Impl
+
+/-- A segment tree is a data structure for dynamic range queries. It has an underlying array `underlying`.
+It supports modifying the underlying array via `modify`, and folding the operation over a range using
+`query`.
+
+This is an efficient implementation representing the segment tree as an implicit data structure in an
+array. As with all data structures based on arrays, care should be taken to use it linearly. -/
+public structure _root_.TCR.SegmentTree (op : α → α → α) (neutral : α) (n : Nat) where
+  /-- The segment tree, stored as an implicit binary tree. -/
+  tree : Vector α (2 * n)
+  /-- The tree forms a valid segment tree. -/
+  wf : Impl.WF op neutral tree
+
+/-- Constructs an `op`-segment tree from the vector `v.` -/
+@[inline]
+public def ofVector (op : α → α → α) (neutral : α) (v : Vector α n) : SegmentTree op neutral n where
+  tree := Impl.mkSegmentTree op neutral v
+  wf := .mkSegmentTree
+
+/-- Constructs an empty `op`-segment tree whose underlying array has size `n`. -/
+@[inline]
+public def empty (op : α → α → α) (neutral : α) (n : Nat) : SegmentTree op neutral n where
+  tree := Impl.mkEmpty neutral n
+  wf := .mkEmpty
+
+/-- Modifies the underlying array of the segment tree at position `i` using `f`. -/
+@[inline]
+public def modify {op : α → α → α} {neutral : α} (t : SegmentTree op neutral n) (i : Nat) (hi : i < n) (f : α → α) :
+    SegmentTree op neutral n where
+  tree := Impl.modify op t.tree i hi f
+  wf := .modify t.wf
+
+/-- Folds the operation over `underlying[l...<r]`. -/
+@[inline]
+public def query {op : α → α → α} {neutral : α} (t : SegmentTree op neutral n) (l r : Nat) (hlr : l ≤ r) (hr : r ≤ n) : α :=
+  Impl.query op neutral t.tree l r hlr hr
+
+/-- Obtains the array that the tree represents. Note that this makes a copy of the array, so it is a
+linear-time operation. -/
+@[inline]
+public def underlying {op : α → α → α} {neutral : α} (t : SegmentTree op neutral n) : Vector α n :=
+  Impl.underlying t.tree
+
+end TCR.SegmentTree
