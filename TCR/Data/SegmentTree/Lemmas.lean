@@ -93,8 +93,8 @@ theorem underlying_empty {op : α → α → α} {neutral : α} {n : Nat} :
   Impl.underlying_mkEmpty
 
 @[ext]
-theorem ext {op : α → α → α} {neutral : α} [Std.LawfulRightIdentity op neutral] {t t' : SegmentTree op neutral n} :
-    t.underlying = t'.underlying → t = t' := by
+protected theorem ext {op : α → α → α} {neutral : α} [Std.LawfulRightIdentity op neutral]
+    {t t' : SegmentTree op neutral n} : t.underlying = t'.underlying → t = t' := by
   rcases t with ⟨t, ht⟩
   rcases t' with ⟨t', ht'⟩
   simpa using Impl.IsSegmentTree.underlying_inj _ _ ht.out ht'.out
