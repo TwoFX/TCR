@@ -38,11 +38,12 @@ theorem leftmost_eq_leftmost_two_mul {n i : Nat} (hi : 0 < i) (hni : i < n) : le
   grind [leftmost]
 
 /-- `IsFold op neutral v l r a` is shorthand for the fact that `a` is obtained by folding `op` over `v[l...<r]`. -/
-def IsFold (op : α → α → α) (neutral : α) (v : Vector α k) (l r : Nat) (a : α) : Prop :=
-  a = (v.extract l r).foldl op neutral
+structure IsFold (op : α → α → α) (neutral : α) (v : Vector α k) (l r : Nat) (a : α) : Prop where
+  eq_foldl : a = (v.extract l r).foldl op neutral
 
 theorem isFold_iff {op : α → α → α} {neutral : α} {v : Vector α k} {l r : Nat} {a : α} :
-    IsFold op neutral v l r a ↔ a = (v.extract l r).foldl op neutral := Iff.rfl
+    IsFold op neutral v l r a ↔ a = (v.extract l r).foldl op neutral := by
+  grind [IsFold]
 
 theorem IsFold.base {op : α → α → α} {neutral : α} {v : Vector α k} {l} : IsFold op neutral v l l neutral := by
   simp [isFold_iff, Vector.extract_eq_cast_empty (Nat.min_le_left l k)]
