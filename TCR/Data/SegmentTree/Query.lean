@@ -10,10 +10,10 @@ import all TCR.Data.SegmentTree.Basic
 import TCR.Data.Vector
 
 /-!
-# Verification of the segment tree `query` operation (WIP)
+# Verification of the segment tree `query` operation
 
 This file will contain the internal part of the verification of the `query` operation on segment trees.
-The final user-facing lemma will appear in `TCR.Data.SegmentTree.Lemmas`.
+The final user-facing lemma appears in `TCR.Data.SegmentTree.Lemmas`.
 -/
 
 namespace TCR.SegmentTree
