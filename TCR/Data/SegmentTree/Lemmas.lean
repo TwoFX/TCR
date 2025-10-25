@@ -7,6 +7,7 @@ module
 
 public import TCR.Data.SegmentTree.Basic
 import all TCR.Data.SegmentTree.Basic
+import all TCR.Data.SegmentTree.Query
 import TCR.Data.SegmentTree.WF
 
 /-!
@@ -98,5 +99,10 @@ public protected theorem ext {op : α → α → α} {neutral : α} [Std.LawfulR
   rcases t with ⟨t, ht⟩
   rcases t' with ⟨t', ht'⟩
   simpa using Impl.IsSegmentTree.underlying_inj _ _ ht.out ht'.out
+
+public theorem query_eq_foldl {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
+    {t : SegmentTree op neutral n} {l r : Nat} {hlr hr} :
+    t.query l r hlr hr = (t.underlying.extract l r).foldl op neutral :=
+  Impl.query_eq_foldl t.isSegmentTree_tree
 
 end TCR.SegmentTree

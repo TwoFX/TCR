@@ -53,4 +53,14 @@ public theorem extract_eq_cast_empty {i j : Nat} {v : Vector α n} (h : min j n 
 public theorem cast_replicate {n m : Nat} (h : n = m) (a : α) : (Vector.replicate n a).cast h = Vector.replicate m a := by
   cases h; simp
 
+public theorem extract_add_one {v : Vector α n} {i : Nat} (hi : i + 1 ≤ n) :
+    v.extract i (i + 1) = #v[v[i]].cast (by omega) := by
+  ext j hj
+  simp [(by omega : j = 0)]
+
+@[simp]
+public theorem foldl_cast {v : Vector α n} {h : n = m} {f : β → α → β} {b : β} :
+    (v.cast h).foldl f b = v.foldl f b := by
+  cases v; simp
+
 end Vector

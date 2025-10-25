@@ -5,8 +5,9 @@ Authors: Markus Himmel
 -/
 module
 
-import TCR.Data.Vector
+public import TCR.Data.SegmentTree.Basic
 import all TCR.Data.SegmentTree.Basic
+import TCR.Data.Vector
 
 /-!
 # Verification of the segment tree `query` operation (WIP)
@@ -30,11 +31,6 @@ theorem isFold_iff {op : α → α → α} {neutral : α} {v : Vector α k} {l r
 @[simp]
 theorem IsFold.base {op : α → α → α} {neutral : α} {v : Vector α k} {l} : IsFold op neutral v l l neutral := by
   simp [isFold_iff, Vector.extract_eq_cast_empty (Nat.min_le_left l k)]
-
-theorem Vector.extract_add_one {v : Vector α n} {i : Nat} (hi : i + 1 ≤ n) :
-    v.extract i (i + 1) = #v[v[i]].cast (by omega) := by
-  ext j hj
-  simp [(by omega : j = 0)]
 
 theorem IsFold.singleton {op : α → α → α} {neutral : α} [Std.LawfulLeftIdentity op neutral] {v : Vector α k} {l} (hl : l < k) :
     IsFold op neutral v l (l + 1) v[l] := by
@@ -120,7 +116,8 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
     {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v)
     {l₀ r₀ : Nat} {resl resr : α} (i : Nat)
     {l r : Nat} (hlx : l₀ + n ≤ 2 ^ i * l) (hrx : 2 ^ i * r ≤ r₀ + n)
-    (hresl : IsFold op neutral v (l₀ + n) (2 ^ i * l) resl) (hresr : IsFold op neutral v (2 ^ i * r) (r₀ + n) resr)
+    (hresl : IsFold op neutral v (l₀ + n) (2 ^ i * l) resl)
+    (hresr : IsFold op neutral v (2 ^ i * r) (r₀ + n) resr)
     (hvalid : ∀ k, l ≤ k → k < r → IsValidAtDepth op neutral v i k)
     {hlr' hr'} :
     IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr' hr') := by
@@ -130,15 +127,13 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
     · rw [Nat.pow_succ, Nat.mul_assoc]
       exact Nat.le_trans hlx (Nat.mul_le_mul_left _ (by grind))
     · rw [Nat.pow_succ, Nat.mul_assoc]
-      refine Nat.le_trans (Nat.mul_le_mul_left _ (by grind)) hrx
+      exact Nat.le_trans (Nat.mul_le_mul_left _ (by grind)) hrx
     · subst resl'
       split <;> rename_i hl
-      · have : 2 ^ (i + 1) * ((l + 1) / 2) = 2 ^ i * l := grind_wishlist_0 hl
-        rwa [this]
+      · rwa [(grind_wishlist_0 hl : 2 ^ (i + 1) * ((l + 1) / 2) = 2 ^ i * l)]
       · have hisf := (hvalid l (by simp) (by omega)).isFold
         have : 2 ^ (i + 1) * ((l + 1) / 2) = 2 ^ i * (l + 1) := grind_wishlist_1 hl
-        rw [this]
-        exact hresl.concat hlx (by grind) hisf
+        exact this ▸ hresl.concat hlx (by grind) hisf
     · subst resr'
       split <;> rename_i hr
       · have : 2 ^ (i + 1) * (r / 2) = 2 ^ i * r := grind_wishlist_2 hr
@@ -146,9 +141,7 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
       · have hisf := (hvalid (r - 1) (by omega) (by omega)).isFold
         have hr₁ : 2 ^ (i + 1) * (r / 2) = 2 ^ i * (r - 1) := grind_wishlist_3 hr
         have hr₂ : 2 ^ i * (r - 1 + 1) = 2 ^ i * r := grind_wishlist_4 hr
-        rw [hr₂] at hisf
-        rw [hr₁]
-        exact hisf.concat (by grind) hrx hresr
+        exact hr₁ ▸ (hr₂ ▸ hisf).concat (by grind) hrx hresr
     · intro k hkl hkr
       apply hv.isValidAtDepth_succ <;> grind
   | case2 l r resl resr h₁ h₂ h₃ =>
@@ -159,6 +152,17 @@ theorem isFold_query {op : α → α → α} {neutral : α} [Std.Associative op]
     {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
     IsFold op neutral v (l + n) (r + n) (query op neutral v l r hlr hr) :=
   query_loop hv 0 (by simp) (by simp) (by simp) (by simp) (fun k hkl hkr => isValidAtDepth_zero (by omega))
+
+theorem extract_underlying {v : Vector α (2 * n)} :
+    (underlying v).extract l r = (v.extract (l + n) (r + n)).cast (by omega) := by
+  ext1
+  simp only [underlying, Vector.getElem_extract, Vector.getElem_cast]
+  grind
+
+theorem query_eq_foldl {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
+    {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr hr} :
+    query op neutral v l r hlr hr = ((underlying v).extract l r).foldl op neutral := by
+  simpa [extract_underlying, Vector.foldl_cast, ← isFold_iff] using isFold_query hv
 
 end Impl
 
