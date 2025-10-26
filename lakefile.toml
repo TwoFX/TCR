@@ -11,3 +11,6 @@ name = "TCR"
 
 [[lean_lib]]
 name = "TCRTest"
+
+[[lean_lib]]
+name = "Problemset"
