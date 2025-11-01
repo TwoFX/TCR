@@ -27,19 +27,22 @@ public structure IsSegmentTree (op : α → α → α) (neutral : α) (v : Vecto
   /-- Given `0 < i < n`, `v[i] = op v[2 * i] v[2 * i + 1]`, i.e., a node stores the combination of its children. -/
   op_eq : ∀ (i : Nat) (_ : 0 < i) (hi : i < n), v[i] = op v[2 * i] v[2 * i + 1]
 
+macro_rules
+  | `(tactic| get_elem_tactic_extensible) => `(tactic| grind)
+
 /-- Creates a new `op`-segment tree on the vector `v`. -/
 @[inline]
 def mkSegmentTree (op : α → α → α) (neutral : α) (v : Vector α n) : Vector α (2 * n) :=
   if h : n = 0 then
-    Vector.mk #[] (by simp [h])
+    Vector.mk #[] (by grind)
   else
     let vec := Vector.mk (Array.replicate n neutral ++ v.toArray) (by grind)
-    loop vec (n - 1) (by omega)
+    loop vec (n - 1)
 where
-  @[specialize] loop (vec : Vector α (2 * n)) (idx : Nat) (hidx : idx < n) : Vector α (2 * n) :=
+  @[specialize] loop (vec : Vector α (2 * n)) (idx : Nat) (hidx : idx < n := by grind) : Vector α (2 * n) :=
     match h : idx with
     | 0 => vec
-    | idx' + 1 => loop (vec.set (idx' + 1) (op vec[2 * (idx' + 1)] vec[2 * (idx' + 1) + 1])) idx' (by grind)
+    | _ + 1 => loop (vec.set idx (op vec[2 * idx] vec[2 * idx + 1])) (idx - 1)
 
 /-- Creates an empty segment tree using the neutral element `neutral`. -/
 @[inline]
@@ -51,28 +54,28 @@ def mkEmpty (neutral : α) (n : Nat) : Vector α (2 * n) :=
 def underlying (v : Vector α (2 * n)) : Vector α n :=
   v.extract n (2 * n) |>.cast <| by grind
 
-/-- Modifies the underlying array of the segment tree at position `i` using `f` and restores the segment tree
-property. -/
+/-- Modifies the underlying array of the segment tree at position `i` using
+`f` and restores the segment tree property. -/
 @[inline]
 def modify (op : α → α → α) (v : Vector α (2 * n)) (i : Nat) (hi : i < n) (f : α → α) : Vector α (2 * n) :=
-  loop (v.modify (n + i) f) ((n + i) / 2) (by omega)
+  loop (v.modify (n + i) f) ((n + i) / 2)
 where
-  @[specialize] loop (vec : Vector α (2 * n)) (idx : Nat) (hidx : idx < n) : Vector α (2 * n) :=
+  @[specialize] loop (vec : Vector α (2 * n)) (idx : Nat) (h : idx < n := by grind) : Vector α (2 * n) :=
     if h : idx = 0 then
       vec
     else
-      loop (vec.set idx (op vec[2 * idx] vec[2 * idx + 1])) (idx / 2) (by omega)
+      loop (vec.set idx (op vec[2 * idx] vec[2 * idx + 1])) (idx / 2)
 
 /-- Folds the operation over `underlying[l...<r]`. -/
 @[inline]
 def query (op : α → α → α) (neutral : α) (v : Vector α (2 * n)) (l r : Nat) (hlr : l ≤ r) (hr : r ≤ n) : α :=
-  loop (l + n) (r + n) neutral neutral (by omega) (by omega)
+  loop (l + n) (r + n) neutral neutral
 where
-  @[specialize] loop (l r : Nat) (resl resr : α) (hlr : l ≤ r) (hr : r ≤ 2 * n) : α :=
+  @[specialize] loop (l r : Nat) (resl resr : α) (h : l ≤ r ∧ r ≤ 2 * n := by grind) : α :=
     if h : l < r then
-      let resl := if l % 2 = 0 then resl else op resl (v[l]'(by grind))
-      let resr := if r % 2 = 0 then resr else op (v[r - 1]'(by grind)) resr
-      loop ((l + 1) / 2) (r / 2) resl resr (by grind) (by grind)
+      let resl := if l % 2 = 0 then resl else op resl v[l]
+      let resr := if r % 2 = 0 then resr else op v[r - 1] resr
+      loop ((l + 1) / 2) (r / 2) resl resr
     else
       op resl resr
 

@@ -64,7 +64,7 @@ theorem IsSegmentTree.underlying_inj (v v' : Vector α (2 * n))
 @[simp]
 theorem underlying_modify {op : α → α → α} {v : Vector α (2 * n)} {i : Nat} {hi : i < n} {f : α → α} :
     underlying (modify op v i hi f) = (underlying v).modify i f := by
-  suffices ∀ (vec : Vector α (2 * n)) idx hidx, underlying (modify.loop op i hi vec idx hidx) = underlying vec by
+  suffices ∀ (vec : Vector α (2 * n)) idx hidx, underlying (modify.loop op i hi f vec idx hidx) = underlying vec by
     simp only [modify, this]
     simp only [underlying, Vector.modify_cast, Vector.cast_eq_cast, Vector.cast_rfl]
     ext j hj

@@ -33,7 +33,7 @@ where
       IsSegmentTree op neutral (mkSegmentTree.loop op vec idx hidx) := by
     fun_induction mkSegmentTree.loop with
     | case1 => exact ⟨by simp_all, by simpa using h⟩
-    | case2 vec idx' hidx ih =>
+    | case2 vec idx' hidx hidx' ih =>
       refine ih ?_ (fun idx'' h₁ h₂ h₃ => ?_)
       · rw [Vector.getElem_set_ne _ _ (by omega), h₀]
       · rw [Vector.getElem_set]
@@ -50,7 +50,7 @@ theorem IsSegmentTree.modify {op : α → α → α} {neutral : α} {v : Vector 
 where
   loop {vec : Vector α (2 * n)} {idx hidx₀ hidx} (h₀ : vec[0] = neutral)
       (h : ∀ (i : Nat) (_ : 0 < i) (hi : i < n) (_ : i ≠ idx), vec[i] = op vec[2 * i] vec[2 * i + 1]) :
-      IsSegmentTree op neutral (modify.loop op i hi vec idx hidx) := by
+      IsSegmentTree op neutral (modify.loop op i hi f vec idx hidx) := by
     fun_induction modify.loop with grind [IsSegmentTree]
 
 theorem isSegmentTree_mkEmpty {op : α → α → α} {neutral : α} [Std.LawfulRightIdentity op neutral] {n : Nat} :

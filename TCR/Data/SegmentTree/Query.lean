@@ -119,10 +119,10 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
     (hresl : IsFold op neutral v (l₀ + n) (2 ^ i * l) resl)
     (hresr : IsFold op neutral v (2 ^ i * r) (r₀ + n) resr)
     (hvalid : ∀ k, l ≤ k → k < r → IsValidAtDepth op neutral v i k)
-    {hlr' hr'} :
-    IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr' hr') := by
+    {hlr'} :
+    IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr') := by
   fun_induction query.loop generalizing i with
-  | case1 l r resl resr _ hr hlr resl' resr' ih =>
+  | case1 l r resl resr _ hlr resl' resr' ih =>
     apply ih (i + 1) <;> clear ih
     · rw [Nat.pow_succ, Nat.mul_assoc]
       exact Nat.le_trans hlx (Nat.mul_le_mul_left _ (by grind))
@@ -144,7 +144,7 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
         exact hr₁ ▸ (hr₂ ▸ hisf).concat (by grind) hrx hresr
     · intro k hkl hkr
       apply hv.isValidAtDepth_succ <;> grind
-  | case2 l r resl resr h₁ h₂ h₃ =>
+  | case2 l r resl resr h₁ h₂ =>
     obtain rfl : l = r := by grind
     exact hresl.concat hlx hrx hresr
 
