@@ -190,8 +190,15 @@ theorem answerQuery_eq_answerForSegment {v : Vector Nat n} {segtree : SegmentTre
     foldl_map_combine]
   grind [answerForSegment_eq]
 
-theorem isCorrectAnswer_solve {inp : Input} : IsCorrectAnswer inp (solve inp) where
+theorem isCorrectAnswer_solve (inp : Input) : IsCorrectAnswer inp (solve inp) where
   eq_length_filter i hi := by simp [solve, answerQuery_eq_answerForSegment SegmentTree.underlying_ofVector]
+
+example : solve sampleInput = #v[4, 4, 1, 1] := by
+  ext1 i hi
+  simp only [(isCorrectAnswer_solve sampleInput).eq_length_filter, answerForSegment]
+  simp only [sampleInput] at hi
+  match i with
+  | 0 | 1 | 2 | 3 => simp [sampleInput]
 
 end Verification
 
