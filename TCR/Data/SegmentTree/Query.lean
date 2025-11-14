@@ -66,6 +66,8 @@ theorem IsFold.of_congr {op : α → α → α} {neutral : α} {v : Vector α k}
 # `below`
 -/
 
+/-- `below d i` is just `2 ^ d * i`. Since this expression plays a central role in the verification of the `query` operation,
+it makes sense to develop explicit API for it. -/
 def below (d i : Nat) : Nat :=
   2 ^ d * i
 
