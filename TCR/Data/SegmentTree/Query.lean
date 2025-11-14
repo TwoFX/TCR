@@ -67,15 +67,13 @@ theorem IsValidAtDepth.succ {op : α → α → α} {neutral : α}
   isFold := by
     have hfl := hleft.isFold
     have hfr := hright.isFold
-    rw [← Nat.mul_assoc, ← Nat.pow_add_one] at hfl
     have : 2 ^ depth * (2 * i + 1 + 1) = 2 ^ (depth + 1) * (i + 1) := by grind
-    rw [this] at hfr
-    rw [heq]
-    exact IsFold.concat (by grind) (by grind) hfl hfr
+    rw [← Nat.mul_assoc, ← Nat.pow_add_one] at hfl
+    exact heq ▸ IsFold.concat (by grind) (by grind) hfl (by rwa [this] at hfr)
 
 theorem IsSegmentTree.isValidAtDepth_succ {op : α → α → α} {neutral : α}
     [Std.Associative op] [Std.LawfulRightIdentity op neutral]
-    {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v) {i : Nat} (hi : 0 < i)
+    {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {i : Nat} (hi : 0 < i)
     (hleft : IsValidAtDepth op neutral v depth (2 * i))
     (hright : IsValidAtDepth op neutral v depth (2 * i + 1)) :
     IsValidAtDepth op neutral v (depth + 1) i := by
@@ -113,7 +111,8 @@ theorem grind_wishlist_4 {r i : Nat} (hr : r % 2 ≠ 0) :
   rw [Nat.sub_add_cancel (by grind)]
 
 theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
-    {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v)
+    {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v)
+    -- (n_is_power_of_two : ∃ d, n = 2 ^ d)
     {l₀ r₀ : Nat} {resl resr : α} (i : Nat)
     {l r : Nat} (hlx : l₀ + n ≤ 2 ^ i * l) (hrx : 2 ^ i * r ≤ r₀ + n)
     (hresl : IsFold op neutral v (l₀ + n) (2 ^ i * l) resl)
@@ -121,6 +120,7 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
     (hvalid : ∀ k, l ≤ k → k < r → IsValidAtDepth op neutral v i k)
     {hlr'} :
     IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr') := by
+  -- clear n_is_power_of_two
   fun_induction query.loop generalizing i with
   | case1 l r resl resr _ hlr resl' resr' ih =>
     apply ih (i + 1) <;> clear ih
@@ -149,18 +149,18 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
     exact hresl.concat hlx hrx hresr
 
 theorem isFold_query {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
-    {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
+    {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
     IsFold op neutral v (l + n) (r + n) (query op neutral v l r hlr hr) :=
   query_loop hv 0 (by simp) (by simp) (by simp) (by simp) (fun k hkl hkr => isValidAtDepth_zero (by omega))
 
-theorem extract_underlying {v : Vector α (2 * n)} :
+theorem extract_underlying {v : Vector α (n + n)} :
     (underlying v).extract l r = (v.extract (l + n) (r + n)).cast (by omega) := by
   ext1
   simp only [underlying, Vector.getElem_extract, Vector.getElem_cast]
   grind
 
 theorem query_eq_foldl {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
-    {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr hr} :
+    {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr hr} :
     query op neutral v l r hlr hr = ((underlying v).extract l r).foldl op neutral := by
   simpa [extract_underlying, Vector.foldl_cast, ← isFold_iff] using isFold_query hv
 

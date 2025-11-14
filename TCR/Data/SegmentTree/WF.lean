@@ -18,19 +18,19 @@ namespace TCR.SegmentTree
 
 namespace Impl
 
-theorem isSegmentTree_mkSegmentTree {op : α → α → α} {neutral : α} {v : Vector α n} :
-    IsSegmentTree op neutral (mkSegmentTree op neutral v) := by
-  rw [mkSegmentTree]
+theorem isSegmentTree_mkSegmentTree' {op : α → α → α} {neutral : α} {v : Vector α n} :
+    IsSegmentTree op neutral (mkSegmentTree' op neutral v) := by
+  rw [mkSegmentTree']
   split
   · refine ⟨by simp_all, by simp_all⟩
-  · refine loop _ _ ?_ (by grind)
-    simp_all [Array.getElem_append]
+  · rw [mkSegmentTree]
+    exact loop (by grind) _ _ (by grind) (by grind)
 where
-  loop {vec : Vector α (2 * n)} (idx : Nat) (hidx : idx < n)
+  loop {vec : Vector α (n + n)} (hn : 0 < n) (idx : Nat) (hidx : idx < n)
       (h₀ : vec[0] = neutral)
       (h : ∀ idx', 0 < idx' → idx < idx' → (h : idx' < n) →
         vec[idx'] = op vec[2 * idx'] vec[2 * idx' + 1]) :
-      IsSegmentTree op neutral (mkSegmentTree.loop op vec idx hidx) := by
+      IsSegmentTree op neutral (mkSegmentTree.loop op hn vec idx hidx) := by
     fun_induction mkSegmentTree.loop with
     | case1 => exact ⟨by simp_all, by simpa using h⟩
     | case2 vec idx' hidx hidx' ih =>
@@ -43,12 +43,12 @@ where
           grind [Vector.getElem_set_ne]
         · grind [Vector.getElem_set_ne]
 
-theorem IsSegmentTree.modify {op : α → α → α} {neutral : α} {v : Vector α (2 * n)} (hv : IsSegmentTree op neutral v)
+theorem IsSegmentTree.modify {op : α → α → α} {neutral : α} {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v)
     {i : Nat} (hi : i < n) (f : α → α) : IsSegmentTree op neutral (modify op v i hi f) := by
   rw [Impl.modify]
   apply loop <;> grind [Vector.getElem_modify_of_ne, IsSegmentTree.zero_eq, IsSegmentTree.op_eq]
 where
-  loop {vec : Vector α (2 * n)} {idx hidx₀ hidx} (h₀ : vec[0] = neutral)
+  loop {vec : Vector α (n + n)} {idx hidx₀ hidx} (h₀ : vec[0] = neutral)
       (h : ∀ (i : Nat) (_ : 0 < i) (hi : i < n) (_ : i ≠ idx), vec[i] = op vec[2 * i] vec[2 * i + 1]) :
       IsSegmentTree op neutral (modify.loop op i hi f vec idx hidx) := by
     fun_induction modify.loop with grind [IsSegmentTree]
@@ -60,9 +60,9 @@ theorem isSegmentTree_mkEmpty {op : α → α → α} {neutral : α} [Std.Lawful
 
 /-- A well-formed segment tree has the segment tree property. -/
 public theorem WF.out {op : α → α → α} {neutral : α} [Std.LawfulRightIdentity op neutral] :
-    {v : Vector α (2 * n)} → Impl.WF op neutral v → IsSegmentTree op neutral v
+    {v : Vector α (n + n)} → Impl.WF op neutral v → IsSegmentTree op neutral v
   | _, .isSegmentTree h => h
-  | _, .mkSegmentTree => isSegmentTree_mkSegmentTree
+  | _, .mkSegmentTree => isSegmentTree_mkSegmentTree'
   | _, .mkEmpty => isSegmentTree_mkEmpty
   | _, .modify h => h.out.modify ..
 

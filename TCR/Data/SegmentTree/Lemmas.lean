@@ -21,30 +21,31 @@ namespace TCR.SegmentTree
 
 namespace Impl
 
-theorem getElem_eq_getElem_underlying {v : Vector α (2 * n)} {i : Nat} {hi : i < 2 * n} (hi' : n ≤ i) :
+theorem getElem_eq_getElem_underlying {v : Vector α (n + n)} {i : Nat} {hi : i < 2 * n} (hi' : n ≤ i) :
     v[i] = (underlying v)[i - n] := by
   simp [underlying]
   grind
 
-theorem getElem?_eq_getElem?_underlying {v : Vector α (2 * n)} {i : Nat} (hi' : n ≤ i) :
+theorem getElem?_eq_getElem?_underlying {v : Vector α (n + n)} {i : Nat} (hi' : n ≤ i) :
     v[i]? = (underlying v)[i - n]? := by
   simp [underlying]
   grind [Vector.getElem?_extract]
 
 @[simp]
-theorem underlying_mkSegmentTree {op : α → α → α} {neutral : α} {v : Vector α n} :
-    underlying (mkSegmentTree op neutral v) = v := by
-  rw [mkSegmentTree]
+theorem underlying_mkSegmentTree' {op : α → α → α} {neutral : α} {v : Vector α n} :
+    underlying (mkSegmentTree' op neutral v) = v := by
+  rw [mkSegmentTree']
   split
   · simp_all [underlying]
-  suffices ∀ (vec : Vector α (2 * n)) idx hidx,
-      (mkSegmentTree.loop op vec idx hidx).extract n (2 * n) = vec.extract n (2 * n) by
-    simp [underlying, this]
-    grind
-  intro vec idx hidx
+  rw [mkSegmentTree]
+  suffices ∀ hn (vec : Vector α (n + n)) idx hidx,
+      (mkSegmentTree.loop op hn vec idx hidx).extract n (n + n) = vec.extract n (n + n) by
+    apply Vector.toArray_inj.1
+    simp [underlying, this (by grind)]
+  intro hn vec idx hidx
   fun_induction mkSegmentTree.loop <;> grind
 
-theorem IsSegmentTree.underlying_inj (v v' : Vector α (2 * n))
+theorem IsSegmentTree.underlying_inj (v v' : Vector α (n + n))
     (hv : IsSegmentTree op neutral v) (hv' : IsSegmentTree op neutral v')
     (h : underlying v = underlying v') : v = v' := by
   suffices ∀ i, (h : i < n - 1) → v[n - i - 1] = v'[n - i - 1] by
@@ -62,9 +63,9 @@ theorem IsSegmentTree.underlying_inj (v v' : Vector α (2 * n))
     grind (splits := 12) [getElem_eq_getElem_underlying]
 
 @[simp]
-theorem underlying_modify {op : α → α → α} {v : Vector α (2 * n)} {i : Nat} {hi : i < n} {f : α → α} :
+theorem underlying_modify {op : α → α → α} {v : Vector α (n + n)} {i : Nat} {hi : i < n} {f : α → α} :
     underlying (modify op v i hi f) = (underlying v).modify i f := by
-  suffices ∀ (vec : Vector α (2 * n)) idx hidx, underlying (modify.loop op i hi f vec idx hidx) = underlying vec by
+  suffices ∀ (vec : Vector α (n + n)) idx hidx, underlying (modify.loop op i hi f vec idx hidx) = underlying vec by
     simp only [modify, this]
     simp only [underlying, Vector.modify_cast, Vector.cast_eq_cast, Vector.cast_rfl]
     ext j hj
@@ -81,7 +82,7 @@ end Impl
 @[simp]
 public theorem underlying_ofVector {op : α → α → α} {neutral : α} {v : Vector α n} :
     (SegmentTree.ofVector op neutral v).underlying = v :=
-  Impl.underlying_mkSegmentTree
+  Impl.underlying_mkSegmentTree'
 
 @[simp]
 public theorem underlying_modify {op : α → α → α} {neutral : α} {t : SegmentTree op neutral n}
