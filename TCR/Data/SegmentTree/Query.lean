@@ -20,13 +20,18 @@ namespace TCR.SegmentTree
 
 namespace Impl
 
+/-!
+# `IsFold`
+-/
+
 /-- `IsFold op neutral v l r a` is shorthand for the fact that `a` is obtained by folding `op` over `v[l...<r]`. -/
 structure IsFold (op : α → α → α) (neutral : α) (v : Vector α k) (l r : Nat) (a : α) : Prop where
+  le : l ≤ r
   eq_foldl : a = (v.extract l r).foldl op neutral
 
 theorem isFold_iff {op : α → α → α} {neutral : α} {v : Vector α k} {l r : Nat} {a : α} :
-    IsFold op neutral v l r a ↔ a = (v.extract l r).foldl op neutral := by
-  grind  [IsFold]
+    IsFold op neutral v l r a ↔ l ≤ r ∧ a = (v.extract l r).foldl op neutral := by
+  grind [IsFold]
 
 @[simp]
 theorem IsFold.base {op : α → α → α} {neutral : α} {v : Vector α k} {l} : IsFold op neutral v l l neutral := by
@@ -37,121 +42,148 @@ theorem IsFold.singleton {op : α → α → α} {neutral : α} [Std.LawfulLeftI
   simp [isFold_iff, Vector.extract_add_one (by omega : l + 1 ≤ k), Std.LawfulLeftIdentity.left_id (op := op)]
 
 theorem IsFold.concat {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
-    {v : Vector α k} {l m r} {a b : α} (hlm : l ≤ m) (hmr : m ≤ r) :
+    {v : Vector α k} {l m r} {a b : α} :
     IsFold op neutral v l m a → IsFold op neutral v m r b → IsFold op neutral v l r (op a b) := by
   simp only [isFold_iff, isFold_iff]
-  rintro rfl rfl
+  rintro ⟨hlm, rfl⟩ ⟨hmr, rfl⟩
   rw [← Vector.foldl_assoc (op := op), Std.LawfulRightIdentity.right_id (op := op),
     ← Vector.foldl_append, Vector.extract_append_extract]
   rcases v with ⟨a, ha⟩
-  simp [Nat.min_eq_left hlm, Nat.max_eq_right hmr]
+  simp [Nat.min_eq_left hlm, Nat.max_eq_right hmr, Nat.le_trans hlm hmr]
 
-/-- `IsValidAtDepth op neutral v depth i` says that `v[i]` is the root of a complete binary subtree of depth
+theorem IsFold.concat_of_eq {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
+    {v : Vector α k} {l m m' r} {a b : α} :
+    IsFold op neutral v l m a → IsFold op neutral v m' r b → m = m' → IsFold op neutral v l r (op a b) := by
+  rintro h₁ h₂ rfl
+  exact h₁.concat h₂
+
+theorem IsFold.of_congr {op : α → α → α} {neutral : α} {v : Vector α k} {l r l' r' a a'} (hl : l = l') (hr : r = r') (ha : a = a') :
+    IsFold op neutral v l r a → IsFold op neutral v l' r' a' := by
+  subst hl hr ha
+  exact id
+
+/-!
+# `below`
+-/
+
+def below (d i : Nat) : Nat :=
+  2 ^ d * i
+
+@[simp]
+theorem below_zero {i : Nat} : below 0 i = i := by
+  simp [below]
+
+theorem below_eq_below_iff {d d' i i' : Nat} : below d i = below d' i' ↔ 2 ^ d * i = 2 ^ d' * i' := by
+  simp [below]
+
+@[grind =]
+theorem below_add_one_add_one_div_two_of_mod_two_eq_zero {d i : Nat} (hi : i % 2 = 0) :
+    below (d + 1) ((i + 1) / 2) = below d i := by
+  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j := Nat.dvd_of_mod_eq_zero hi
+  have : (2 * j + 1) / 2 = j := by grind
+  grind [below_eq_below_iff]
+
+@[grind =]
+theorem below_add_one_add_one_div_two_of_mod_two_ne_zero {d i : Nat} (hi : i % 2 ≠ 0) :
+    below (d + 1) ((i + 1) / 2) = below d (i + 1) := by
+  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j + 1 :=
+    ⟨i / 2, Nat.mod_two_ne_zero.1 hi ▸ (Nat.div_add_mod i 2).symm⟩
+  have : (2 * j + 1 + 1) / 2 = j + 1 := by grind
+  grind [below_eq_below_iff]
+
+theorem below_le_below_add_one_add_one_div_two {d i : Nat} :
+    below d i ≤ below (d + 1) ((i + 1) / 2) := by
+  grind [below]
+
+@[grind =]
+theorem below_add_one_div_two_of_mod_two_eq_zero {d i : Nat} (hi : i % 2 = 0) :
+    below (d + 1) (i / 2) = below d i := by
+  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j := Nat.dvd_of_mod_eq_zero hi
+  simp [below_eq_below_iff, Nat.pow_succ, Nat.mul_assoc]
+
+@[grind =]
+theorem below_add_one_div_two_of_mod_two_ne_zero {d i : Nat} (hi : i % 2 ≠ 0) :
+    below (d + 1) (i / 2) = below d (i - 1) := by
+  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j  + 1 :=
+    ⟨i / 2, Nat.mod_two_ne_zero.1 hi ▸ (Nat.div_add_mod i 2).symm⟩
+  have : (2 * j + 1) / 2 = j := by grind
+  grind [below_eq_below_iff]
+
+theorem below_add_one_div_two_le_below {d i : Nat} :
+    below (d + 1) (i / 2) ≤ below d i := by
+  rw [below, below, Nat.pow_succ, Nat.mul_assoc]
+  exact Nat.mul_le_mul_left _ (by grind)
+
+/-!
+# `HasHeight`
+-/
+
+/-- `HasHeight op neutral v depth i` says that `v[i]` is the root of a complete binary subtree of depth
 `depth` and contains the correct fold over that subtree. -/
-structure IsValidAtDepth (op : α → α → α) (neutral : α) (v : Vector α k) (depth i : Nat) : Prop where
+structure HasHeight (op : α → α → α) (neutral : α) (v : Vector α k) (depth i : Nat) : Prop where
   hi : i < k
-  isFold : IsFold op neutral v (2 ^ depth * i) (2 ^ depth * (i + 1)) v[i]
+  isFold : IsFold op neutral v (below depth i) (below depth (i + 1)) v[i]
 
-theorem isValidAtDepth_zero {op : α → α → α} {neutral : α} [Std.LawfulLeftIdentity op neutral]
-    {v : Vector α k} {i : Nat} (hi : i < k) : IsValidAtDepth op neutral v 0 i where
+theorem hasHeight_zero {op : α → α → α} {neutral : α} [Std.LawfulLeftIdentity op neutral]
+    {v : Vector α k} {i : Nat} (hi : i < k) : HasHeight op neutral v 0 i where
   hi := hi
   isFold := by simpa using IsFold.singleton _
 
-theorem IsValidAtDepth.succ {op : α → α → α} {neutral : α}
+theorem HasHeight.succ {op : α → α → α} {neutral : α}
     [Std.Associative op] [Std.LawfulRightIdentity op neutral]
-    {v : Vector α k} {i : Nat} (hleft : IsValidAtDepth op neutral v depth (2 * i))
-    (hright : IsValidAtDepth op neutral v depth (2 * i + 1))
+    {v : Vector α k} {i : Nat} (hleft : HasHeight op neutral v depth (2 * i))
+    (hright : HasHeight op neutral v depth (2 * i + 1))
     (heq : v[i]'(by have := hright.hi; omega) = op (v[2 * i]'(hleft.hi)) (v[2 * i + 1]'(hright.hi))) :
-    IsValidAtDepth op neutral v (depth + 1) i where
+    HasHeight op neutral v (depth + 1) i where
   hi := by have := hright.hi; omega
-  isFold := by
-    have hfl := hleft.isFold
-    have hfr := hright.isFold
-    have : 2 ^ depth * (2 * i + 1 + 1) = 2 ^ (depth + 1) * (i + 1) := by grind
-    rw [← Nat.mul_assoc, ← Nat.pow_add_one] at hfl
-    exact heq ▸ IsFold.concat (by grind) (by grind) hfl (by rwa [this] at hfr)
+  isFold := by refine (hleft.isFold.concat hright.isFold).of_congr ?_ ?_ heq.symm <;> grind [below_eq_below_iff]
 
-theorem IsSegmentTree.isValidAtDepth_succ {op : α → α → α} {neutral : α}
+theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
     [Std.Associative op] [Std.LawfulRightIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {i : Nat} (hi : 0 < i)
-    (hleft : IsValidAtDepth op neutral v depth (2 * i))
-    (hright : IsValidAtDepth op neutral v depth (2 * i + 1)) :
-    IsValidAtDepth op neutral v (depth + 1) i := by
-  apply IsValidAtDepth.succ hleft hright (hv.op_eq _ hi _)
+    (hleft : HasHeight op neutral v depth (2 * i))
+    (hright : HasHeight op neutral v depth (2 * i + 1)) :
+    HasHeight op neutral v (depth + 1) i := by
+  apply HasHeight.succ hleft hright (hv.op_eq _ hi _)
   have := hleft.hi
   grind
 
-theorem grind_wishlist_0 {l i : Nat} (hl : l % 2 = 0) :
-    2 ^ (i + 1) * ((l + 1) / 2) = 2 ^ i * l := by
-  obtain ⟨d, rfl⟩ : ∃ d, l = 2 * d := Nat.dvd_of_mod_eq_zero hl
-  have : (2 * d + 1) / 2 = d := by grind
-  grind
-
-theorem grind_wishlist_1 {l i : Nat} (hl : l % 2 ≠ 0) :
-    2 ^ (i + 1) * ((l + 1) / 2) = 2 ^ i * (l + 1) := by
-  obtain ⟨d, rfl⟩ : ∃ d, l = 2 * d + 1 :=
-    ⟨l / 2, Nat.mod_two_ne_zero.1 hl ▸ (Nat.div_add_mod l 2).symm⟩
-  have : (2 * d + 1 + 1) / 2 = d + 1 := by grind
-  grind
-
-theorem grind_wishlist_2 {r i : Nat} (hr : r % 2 = 0) :
-    2 ^ (i + 1) * (r / 2) = 2 ^ i * r := by
-  obtain ⟨d, rfl⟩ : ∃ d, r = 2 * d := Nat.dvd_of_mod_eq_zero hr
-  simp [Nat.pow_succ, Nat.mul_assoc]
-
-theorem grind_wishlist_3 {r i : Nat} (hr : r % 2 ≠ 0) :
-    2 ^ (i + 1) * (r / 2) = 2 ^ i * (r - 1) := by
-  obtain ⟨d, rfl⟩ : ∃ d, r = 2 * d + 1 :=
-    ⟨r / 2, Nat.mod_two_ne_zero.1 hr ▸ (Nat.div_add_mod r 2).symm⟩
-  have : (2 * d + 1) / 2 = d := by grind
-  grind
-
-theorem grind_wishlist_4 {r i : Nat} (hr : r % 2 ≠ 0) :
-    2 ^ i * (r - 1 + 1) = 2 ^ i * r := by
-  rw [Nat.sub_add_cancel (by grind)]
+/-!
+# Verification of `query`
+-/
 
 theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v)
     -- (n_is_power_of_two : ∃ d, n = 2 ^ d)
     {l₀ r₀ : Nat} {resl resr : α} (i : Nat)
-    {l r : Nat} (hlx : l₀ + n ≤ 2 ^ i * l) (hrx : 2 ^ i * r ≤ r₀ + n)
-    (hresl : IsFold op neutral v (l₀ + n) (2 ^ i * l) resl)
-    (hresr : IsFold op neutral v (2 ^ i * r) (r₀ + n) resr)
-    (hvalid : ∀ k, l ≤ k → k < r → IsValidAtDepth op neutral v i k)
+    {l r : Nat} (hlx : l₀ + n ≤ below i l) (hrx : below i r ≤ r₀ + n)
+    (hresl : IsFold op neutral v (l₀ + n) (below i l) resl)
+    (hresr : IsFold op neutral v (below i r) (r₀ + n) resr)
+    (hvalid : ∀ k, l ≤ k → k < r → HasHeight op neutral v i k)
     {hlr'} :
     IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr') := by
   -- clear n_is_power_of_two
   fun_induction query.loop generalizing i with
   | case1 l r resl resr _ hlr resl' resr' ih =>
     apply ih (i + 1) <;> clear ih
-    · rw [Nat.pow_succ, Nat.mul_assoc]
-      exact Nat.le_trans hlx (Nat.mul_le_mul_left _ (by grind))
-    · rw [Nat.pow_succ, Nat.mul_assoc]
-      exact Nat.le_trans (Nat.mul_le_mul_left _ (by grind)) hrx
+    · exact Nat.le_trans hlx below_le_below_add_one_add_one_div_two
+    · exact Nat.le_trans below_add_one_div_two_le_below hrx
     · subst resl'
-      split <;> rename_i hl
-      · rwa [(grind_wishlist_0 hl : 2 ^ (i + 1) * ((l + 1) / 2) = 2 ^ i * l)]
-      · have hisf := (hvalid l (by simp) (by omega)).isFold
-        have : 2 ^ (i + 1) * ((l + 1) / 2) = 2 ^ i * (l + 1) := grind_wishlist_1 hl
-        exact this ▸ hresl.concat hlx (by grind) hisf
+      split
+      · grind
+      · exact (hresl.concat (hvalid l (by simp) hlr).isFold).of_congr rfl (by grind) rfl
     · subst resr'
-      split <;> rename_i hr
-      · have : 2 ^ (i + 1) * (r / 2) = 2 ^ i * r := grind_wishlist_2 hr
-        rwa [this]
-      · have hisf := (hvalid (r - 1) (by omega) (by omega)).isFold
-        have hr₁ : 2 ^ (i + 1) * (r / 2) = 2 ^ i * (r - 1) := grind_wishlist_3 hr
-        have hr₂ : 2 ^ i * (r - 1 + 1) = 2 ^ i * r := grind_wishlist_4 hr
-        exact hr₁ ▸ (hr₂ ▸ hisf).concat (by grind) hrx hresr
+      split
+      · grind
+      · exact ((hvalid (r - 1) (by omega) (by omega)).isFold.concat_of_eq hresr (by grind)).of_congr (by grind) rfl rfl
     · intro k hkl hkr
-      apply hv.isValidAtDepth_succ <;> grind
-  | case2 l r resl resr h₁ h₂ =>
-    obtain rfl : l = r := by grind
-    exact hresl.concat hlx hrx hresr
+      apply hv.hasHeight_succ <;> grind [below]
+  | case2 l r resl resr h₁ h₂ => exact hresl.concat_of_eq hresr (by grind)
 
 theorem isFold_query {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
     IsFold op neutral v (l + n) (r + n) (query op neutral v l r hlr hr) :=
-  query_loop hv 0 (by simp) (by simp) (by simp) (by simp) (fun k hkl hkr => isValidAtDepth_zero (by omega))
+  query_loop hv 0 (by simp) (by simp) (by simp) (by simp) (fun k hkl hkr => hasHeight_zero (by omega))
 
 theorem extract_underlying {v : Vector α (n + n)} :
     (underlying v).extract l r = (v.extract (l + n) (r + n)).cast (by omega) := by
@@ -162,7 +194,7 @@ theorem extract_underlying {v : Vector α (n + n)} :
 theorem query_eq_foldl {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr hr} :
     query op neutral v l r hlr hr = ((underlying v).extract l r).foldl op neutral := by
-  simpa [extract_underlying, Vector.foldl_cast, ← isFold_iff] using isFold_query hv
+  simpa only [extract_underlying] using (isFold_iff.1 (isFold_query hv)).2
 
 end Impl
 
