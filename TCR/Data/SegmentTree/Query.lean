@@ -16,6 +16,8 @@ This file will contain the internal part of the verification of the `query` oper
 The final user-facing lemma appears in `TCR.Data.SegmentTree.Lemmas`.
 -/
 
+open Std
+
 namespace TCR.SegmentTree
 
 namespace Impl
@@ -39,21 +41,21 @@ theorem isFold_iff {op : α → α → α} {neutral : α} {v : Vector α k} {l r
 theorem IsFold.base {op : α → α → α} {neutral : α} {v : Vector α k} {l} : IsFold op neutral v l l neutral := by
   simp [isFold_iff, Vector.extract_eq_cast_empty (Nat.min_le_left l k)]
 
-theorem IsFold.singleton {op : α → α → α} {neutral : α} [Std.LawfulLeftIdentity op neutral] {v : Vector α k} {l} (hl : l < k) :
+theorem IsFold.singleton {op : α → α → α} {neutral : α} [LawfulLeftIdentity op neutral] {v : Vector α k} {l} (hl : l < k) :
     IsFold op neutral v l (l + 1) v[l] := by
-  simp [isFold_iff, Vector.extract_add_one (by omega : l + 1 ≤ k), Std.LawfulLeftIdentity.left_id (op := op)]
+  simp [isFold_iff, Vector.extract_add_one (by omega : l + 1 ≤ k), LawfulLeftIdentity.left_id (op := op)]
 
-theorem IsFold.concat {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
+theorem IsFold.concat {op : α → α → α} {neutral : α} [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α k} {l m r} {a b : α} :
     IsFold op neutral v l m a → IsFold op neutral v m r b → IsFold op neutral v l r (op a b) := by
   simp only [isFold_iff, isFold_iff]
   rintro ⟨hlm, rfl⟩ ⟨hmr, rfl⟩
-  rw [← Vector.foldl_assoc (op := op), Std.LawfulRightIdentity.right_id (op := op),
+  rw [← Vector.foldl_assoc (op := op), LawfulRightIdentity.right_id (op := op),
     ← Vector.foldl_append, Vector.extract_append_extract]
   rcases v with ⟨a, ha⟩
   simp [Nat.min_eq_left hlm, Nat.max_eq_right hmr, Nat.le_trans hlm hmr]
 
-theorem IsFold.concat_of_eq {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
+theorem IsFold.concat_of_eq {op : α → α → α} {neutral : α} [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α k} {l m m' r} {a b : α} :
     IsFold op neutral v l m a → IsFold op neutral v m' r b → m = m' → IsFold op neutral v l r (op a b) := by
   rintro h₁ h₂ rfl
@@ -128,13 +130,13 @@ structure HasHeight (op : α → α → α) (neutral : α) (v : Vector α k) (de
   hi : i < k
   isFold : IsFold op neutral v (below depth i) (below depth (i + 1)) v[i]
 
-theorem hasHeight_zero {op : α → α → α} {neutral : α} [Std.LawfulLeftIdentity op neutral]
+theorem hasHeight_zero {op : α → α → α} {neutral : α} [LawfulLeftIdentity op neutral]
     {v : Vector α k} {i : Nat} (hi : i < k) : HasHeight op neutral v 0 i where
   hi := hi
   isFold := by simpa using IsFold.singleton _
 
 theorem HasHeight.succ {op : α → α → α} {neutral : α}
-    [Std.Associative op] [Std.LawfulRightIdentity op neutral]
+    [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α k} {i : Nat} (hleft : HasHeight op neutral v depth (2 * i))
     (hright : HasHeight op neutral v depth (2 * i + 1))
     (heq : v[i]'(by have := hright.hi; omega) = op (v[2 * i]'(hleft.hi)) (v[2 * i + 1]'(hright.hi))) :
@@ -143,7 +145,7 @@ theorem HasHeight.succ {op : α → α → α} {neutral : α}
   isFold := by refine (hleft.isFold.concat hright.isFold).of_congr ?_ ?_ heq.symm <;> grind [below_eq_below_iff]
 
 theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
-    [Std.Associative op] [Std.LawfulRightIdentity op neutral]
+    [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {i : Nat} (hi : 0 < i)
     (hleft : HasHeight op neutral v depth (2 * i))
     (hright : HasHeight op neutral v depth (2 * i + 1)) :
@@ -156,29 +158,29 @@ theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
 # Verification of `query`
 -/
 
-theorem isFold_queryLoop {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
+theorem isFold_queryLoop {op : α → α → α} {neutral : α} [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v)
     -- (n_is_power_of_two : ∃ d, n = 2 ^ d)
     {l₀ r₀ : Nat} {resl resr : α} (i : Nat) {l r : Nat} {hlr}
-    (hvalid : ∀ k, l ≤ k → k < r → HasHeight op neutral v i k)
+    (hheight : ∀ k, l ≤ k → k < r → HasHeight op neutral v i k)
     (hresl : IsFold op neutral v (l₀ + n) (below i l) resl)
     (hresr : IsFold op neutral v (below i r) (r₀ + n) resr) :
     IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr) := by
   -- clear n_is_power_of_two
   fun_induction query.loop generalizing i with
-  | case1 l r resl resr _ hlr resl' resr' ih =>
+  | case1 l r resl resr hlr₀ hlr resl' resr' ih =>
     subst resl' resr'; apply ih (i + 1) <;> clear ih
     · intro k hkl hkr
       apply hv.hasHeight_succ <;> grind [below]
     · split
       · grind
-      · exact (hresl.concat (hvalid l (by simp) hlr).isFold).of_congr rfl (by grind) rfl
+      · exact (hresl.concat (hheight l (by simp) hlr).isFold).of_congr rfl (by grind) rfl
     · split
       · grind
-      · exact ((hvalid (r - 1) (by omega) (by omega)).isFold.concat_of_eq hresr (by grind)).of_congr (by grind) rfl rfl
+      · exact ((hheight (r - 1) (by omega) (by omega)).isFold.concat_of_eq hresr (by grind)).of_congr (by grind) rfl rfl
   | case2 l r resl resr h₁ h₂ => exact hresl.concat_of_eq hresr (by grind)
 
-theorem isFold_query {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
+theorem isFold_query {op : α → α → α} {neutral : α} [Associative op] [LawfulIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
     IsFold op neutral v (l + n) (r + n) (query op neutral v l r hlr hr) :=
   isFold_queryLoop hv 0 (fun k hkl hkr => hasHeight_zero (by omega)) (by simp) (by simp)
@@ -189,7 +191,7 @@ theorem extract_underlying {v : Vector α (n + n)} :
   simp only [underlying, Vector.getElem_extract, Vector.getElem_cast]
   grind
 
-theorem query_eq_foldl {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
+theorem query_eq_foldl {op : α → α → α} {neutral : α} [Associative op] [LawfulIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr hr} :
     query op neutral v l r hlr hr = ((underlying v).extract l r).foldl op neutral := by
   simpa only [extract_underlying] using (isFold_iff.1 (isFold_query hv)).2
