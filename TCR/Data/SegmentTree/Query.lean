@@ -81,14 +81,11 @@ def below (d i : Nat) : Nat :=
 theorem below_zero {i : Nat} : below 0 i = i := by
   simp [below]
 
-theorem below_eq_below_iff {d d' i i' : Nat} : below d i = below d' i' ↔ 2 ^ d * i = 2 ^ d' * i' := by
-  simp [below]
-
 @[grind =]
 theorem below_add_one_div_two_of_mod_two_eq_zero {d i : Nat} (hi : i % 2 = 0) :
     below (d + 1) (i / 2) = below d i := by
-  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j := Nat.dvd_of_mod_eq_zero hi
-  simp [below_eq_below_iff, Nat.pow_succ, Nat.mul_assoc]
+  have hi : i = 2 * (i / 2) := by grind
+  grind [below]
 
 @[grind =]
 theorem below_add_one_div_two_of_mod_two_ne_zero {d i : Nat} (hi : i % 2 ≠ 0) :
@@ -96,7 +93,7 @@ theorem below_add_one_div_two_of_mod_two_ne_zero {d i : Nat} (hi : i % 2 ≠ 0) 
   obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j  + 1 :=
     ⟨i / 2, Nat.mod_two_ne_zero.1 hi ▸ (Nat.div_add_mod i 2).symm⟩
   have : (2 * j + 1) / 2 = j := by grind
-  grind [below_eq_below_iff]
+  grind [below]
 
 /-!
 # `HasHeight`
@@ -122,7 +119,7 @@ theorem HasHeight.succ {op : α → α → α} {neutral : α}
     (heq : v[i]'(by have := hright.hi; omega) = op (v[2 * i]'(hleft.hi)) (v[2 * i + 1]'(hright.hi))) :
     HasHeight op neutral v (depth + 1) i where
   hi := by have := hright.hi; omega
-  isFold := by refine (hleft.isFold.concat hright.isFold).of_congr ?_ ?_ heq.symm <;> grind [below_eq_below_iff]
+  isFold := by refine (hleft.isFold.concat hright.isFold).of_congr ?_ ?_ heq.symm <;> grind [below]
 
 theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
     [Associative op] [LawfulRightIdentity op neutral]
