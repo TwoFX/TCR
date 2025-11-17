@@ -104,21 +104,23 @@ theorem below_add_one_div_two_of_mod_two_ne_zero {d i : Nat} (hi : i % 2 ≠ 0) 
 `depth` and contains the correct fold over that subtree.
 -/
 structure HasHeight (op : α → α → α) (neutral : α) (v : Vector α k) (depth i : Nat) : Prop where
-  hi : i < k
+  lt : i < k
   isFold : IsFold op neutral v (below depth i) (below depth (i + 1)) v[i]
+
+attribute [grind →] HasHeight.lt
 
 theorem hasHeight_zero {op : α → α → α} {neutral : α} [LawfulLeftIdentity op neutral]
     {v : Vector α k} {i : Nat} (hi : i < k) : HasHeight op neutral v 0 i where
-  hi := hi
+  lt := hi
   isFold := by simpa using IsFold.singleton _
 
 theorem HasHeight.succ {op : α → α → α} {neutral : α}
     [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α k} {i : Nat} (hleft : HasHeight op neutral v depth (2 * i))
     (hright : HasHeight op neutral v depth (2 * i + 1))
-    (heq : v[i]'(by have := hright.hi; omega) = op (v[2 * i]'(hleft.hi)) (v[2 * i + 1]'(hright.hi))) :
+    (heq : v[i] = op (v[2 * i]) (v[2 * i + 1])) :
     HasHeight op neutral v (depth + 1) i where
-  hi := by have := hright.hi; omega
+  lt := by have := hright.lt; omega
   isFold := by refine (hleft.isFold.concat hright.isFold).of_congr ?_ ?_ heq.symm <;> grind [below]
 
 theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
@@ -128,7 +130,7 @@ theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
     (hright : HasHeight op neutral v depth (2 * i + 1)) :
     HasHeight op neutral v (depth + 1) i := by
   apply HasHeight.succ hleft hright (hv.op_eq _ hi _)
-  have := hleft.hi
+  have := hleft.lt
   grind
 
 /-!
