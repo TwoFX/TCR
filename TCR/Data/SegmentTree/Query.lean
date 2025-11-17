@@ -158,7 +158,7 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v)
     -- (n_is_power_of_two : ∃ d, n = 2 ^ d)
     {l₀ r₀ : Nat} {resl resr : α} (i : Nat)
-    {l r : Nat} (hlx : l₀ + n ≤ below i l) (hrx : below i r ≤ r₀ + n)
+    {l r : Nat}
     (hresl : IsFold op neutral v (l₀ + n) (below i l) resl)
     (hresr : IsFold op neutral v (below i r) (r₀ + n) resr)
     (hvalid : ∀ k, l ≤ k → k < r → HasHeight op neutral v i k)
@@ -168,8 +168,6 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
   fun_induction query.loop generalizing i with
   | case1 l r resl resr _ hlr resl' resr' ih =>
     apply ih (i + 1) <;> clear ih
-    · exact Nat.le_trans hlx below_le_below_add_one_add_one_div_two
-    · exact Nat.le_trans below_add_one_div_two_le_below hrx
     · subst resl'
       split
       · grind
@@ -179,13 +177,14 @@ theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [
       · grind
       · exact ((hvalid (r - 1) (by omega) (by omega)).isFold.concat_of_eq hresr (by grind)).of_congr (by grind) rfl rfl
     · intro k hkl hkr
+      have := hresl.le
       apply hv.hasHeight_succ <;> grind [below]
   | case2 l r resl resr h₁ h₂ => exact hresl.concat_of_eq hresr (by grind)
 
 theorem isFold_query {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
     IsFold op neutral v (l + n) (r + n) (query op neutral v l r hlr hr) :=
-  query_loop hv 0 (by simp) (by simp) (by simp) (by simp) (fun k hkl hkr => hasHeight_zero (by omega))
+  query_loop hv 0 (by simp) (by simp) (fun k hkl hkr => hasHeight_zero (by omega))
 
 theorem extract_underlying {v : Vector α (n + n)} :
     (underlying v).extract l r = (v.extract (l + n) (r + n)).cast (by omega) := by
