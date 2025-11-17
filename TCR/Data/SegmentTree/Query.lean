@@ -26,10 +26,10 @@ namespace Impl
 # `IsFold`
 -/
 
-/-- `IsFold op neutral v l r a` is shorthand for the fact that `a` is obtained by folding `op` over `v[l...<r]`. -/
-structure IsFold (op : α → α → α) (neutral : α) (v : Vector α k) (l r : Nat) (a : α) : Prop where
+/-- `IsFold op neutral v l r x` means that `x = [l, r) = v[l] op v[l + 1] op … op v[r - 1]`. -/
+structure IsFold (op : α → α → α) (neutral : α) (v : Vector α k) (l r : Nat) (x : α) : Prop where
   le : l ≤ r
-  eq_foldl : a = (v.extract l r).foldl op neutral
+  eq_foldl : x = (v.extract l r).foldl op neutral
 
 attribute [grind →] IsFold.le
 
@@ -70,8 +70,10 @@ theorem IsFold.of_congr {op : α → α → α} {neutral : α} {v : Vector α k}
 # `below`
 -/
 
-/-- `below d i` is just `2 ^ d * i`. Since this expression plays a central role in the verification of the `query` operation,
-it makes sense to develop explicit API for it. -/
+/--
+`below d i` is just `2 ^ d * i`. Since this expression plays a central role in the
+verification of the `query` operation, it makes sense to develop explicit API for it.
+-/
 def below (d i : Nat) : Nat :=
   2 ^ d * i
 
@@ -81,25 +83,6 @@ theorem below_zero {i : Nat} : below 0 i = i := by
 
 theorem below_eq_below_iff {d d' i i' : Nat} : below d i = below d' i' ↔ 2 ^ d * i = 2 ^ d' * i' := by
   simp [below]
-
-@[grind =]
-theorem below_add_one_add_one_div_two_of_mod_two_eq_zero {d i : Nat} (hi : i % 2 = 0) :
-    below (d + 1) ((i + 1) / 2) = below d i := by
-  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j := Nat.dvd_of_mod_eq_zero hi
-  have : (2 * j + 1) / 2 = j := by grind
-  grind [below_eq_below_iff]
-
-@[grind =]
-theorem below_add_one_add_one_div_two_of_mod_two_ne_zero {d i : Nat} (hi : i % 2 ≠ 0) :
-    below (d + 1) ((i + 1) / 2) = below d (i + 1) := by
-  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j + 1 :=
-    ⟨i / 2, Nat.mod_two_ne_zero.1 hi ▸ (Nat.div_add_mod i 2).symm⟩
-  have : (2 * j + 1 + 1) / 2 = j + 1 := by grind
-  grind [below_eq_below_iff]
-
-theorem below_le_below_add_one_add_one_div_two {d i : Nat} :
-    below d i ≤ below (d + 1) ((i + 1) / 2) := by
-  grind [below]
 
 @[grind =]
 theorem below_add_one_div_two_of_mod_two_eq_zero {d i : Nat} (hi : i % 2 = 0) :
@@ -115,17 +98,14 @@ theorem below_add_one_div_two_of_mod_two_ne_zero {d i : Nat} (hi : i % 2 ≠ 0) 
   have : (2 * j + 1) / 2 = j := by grind
   grind [below_eq_below_iff]
 
-theorem below_add_one_div_two_le_below {d i : Nat} :
-    below (d + 1) (i / 2) ≤ below d i := by
-  rw [below, below, Nat.pow_succ, Nat.mul_assoc]
-  exact Nat.mul_le_mul_left _ (by grind)
-
 /-!
 # `HasHeight`
 -/
 
-/-- `HasHeight op neutral v depth i` says that `v[i]` is the root of a complete binary subtree of depth
-`depth` and contains the correct fold over that subtree. -/
+/--
+`HasHeight op neutral v depth i` says that `v[i]` is the root of a complete binary subtree of depth
+`depth` and contains the correct fold over that subtree.
+-/
 structure HasHeight (op : α → α → α) (neutral : α) (v : Vector α k) (depth i : Nat) : Prop where
   hi : i < k
   isFold : IsFold op neutral v (below depth i) (below depth (i + 1)) v[i]
