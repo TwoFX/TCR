@@ -48,7 +48,7 @@ theorem IsFold.singleton {op : α → α → α} {neutral : α} [LawfulLeftIdent
 theorem IsFold.concat {op : α → α → α} {neutral : α} [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α k} {l m r} {a b : α} :
     IsFold op neutral v l m a → IsFold op neutral v m r b → IsFold op neutral v l r (op a b) := by
-  simp only [isFold_iff, isFold_iff]
+  simp only [isFold_iff]
   rintro ⟨hlm, rfl⟩ ⟨hmr, rfl⟩
   rw [← Vector.foldl_assoc (op := op), LawfulRightIdentity.right_id (op := op),
     ← Vector.foldl_append, Vector.extract_append_extract]
