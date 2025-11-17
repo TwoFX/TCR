@@ -29,6 +29,8 @@ structure IsFold (op : α → α → α) (neutral : α) (v : Vector α k) (l r :
   le : l ≤ r
   eq_foldl : a = (v.extract l r).foldl op neutral
 
+attribute [grind →] IsFold.le
+
 theorem isFold_iff {op : α → α → α} {neutral : α} {v : Vector α k} {l r : Nat} {a : α} :
     IsFold op neutral v l r a ↔ l ≤ r ∧ a = (v.extract l r).foldl op neutral := by
   grind [IsFold]
@@ -154,37 +156,32 @@ theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
 # Verification of `query`
 -/
 
-theorem query_loop {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
+theorem isFold_queryLoop {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulRightIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v)
     -- (n_is_power_of_two : ∃ d, n = 2 ^ d)
-    {l₀ r₀ : Nat} {resl resr : α} (i : Nat)
-    {l r : Nat}
-    (hresl : IsFold op neutral v (l₀ + n) (below i l) resl)
-    (hresr : IsFold op neutral v (below i r) (r₀ + n) resr)
+    {l₀ r₀ : Nat} {resl resr : α} (i : Nat) {l r : Nat} {hlr}
     (hvalid : ∀ k, l ≤ k → k < r → HasHeight op neutral v i k)
-    {hlr'} :
-    IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr') := by
+    (hresl : IsFold op neutral v (l₀ + n) (below i l) resl)
+    (hresr : IsFold op neutral v (below i r) (r₀ + n) resr) :
+    IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr) := by
   -- clear n_is_power_of_two
   fun_induction query.loop generalizing i with
   | case1 l r resl resr _ hlr resl' resr' ih =>
-    apply ih (i + 1) <;> clear ih
-    · subst resl'
-      split
+    subst resl' resr'; apply ih (i + 1) <;> clear ih
+    · intro k hkl hkr
+      apply hv.hasHeight_succ <;> grind [below]
+    · split
       · grind
       · exact (hresl.concat (hvalid l (by simp) hlr).isFold).of_congr rfl (by grind) rfl
-    · subst resr'
-      split
+    · split
       · grind
       · exact ((hvalid (r - 1) (by omega) (by omega)).isFold.concat_of_eq hresr (by grind)).of_congr (by grind) rfl rfl
-    · intro k hkl hkr
-      have := hresl.le
-      apply hv.hasHeight_succ <;> grind [below]
   | case2 l r resl resr h₁ h₂ => exact hresl.concat_of_eq hresr (by grind)
 
 theorem isFold_query {op : α → α → α} {neutral : α} [Std.Associative op] [Std.LawfulIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
     IsFold op neutral v (l + n) (r + n) (query op neutral v l r hlr hr) :=
-  query_loop hv 0 (by simp) (by simp) (fun k hkl hkr => hasHeight_zero (by omega))
+  isFold_queryLoop hv 0 (fun k hkl hkr => hasHeight_zero (by omega)) (by simp) (by simp)
 
 theorem extract_underlying {v : Vector α (n + n)} :
     (underlying v).extract l r = (v.extract (l + n) (r + n)).cast (by omega) := by
