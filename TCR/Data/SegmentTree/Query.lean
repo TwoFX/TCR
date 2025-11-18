@@ -118,7 +118,7 @@ theorem HasHeight.succ {op : α → α → α} {neutral : α}
     [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α k} {i : Nat} (hleft : HasHeight op neutral v depth (2 * i))
     (hright : HasHeight op neutral v depth (2 * i + 1))
-    (heq : v[i] = op (v[2 * i]) (v[2 * i + 1])) :
+    (heq : v[i] = op v[2 * i] v[2 * i + 1]) :
     HasHeight op neutral v (depth + 1) i where
   lt := by have := hright.lt; omega
   isFold := by refine (hleft.isFold.concat hright.isFold).of_congr ?_ ?_ heq.symm <;> grind [below]
