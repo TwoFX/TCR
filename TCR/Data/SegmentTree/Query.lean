@@ -58,13 +58,11 @@ theorem IsFold.concat {op : α → α → α} {neutral : α} [Associative op] [L
 theorem IsFold.concat_of_eq {op : α → α → α} {neutral : α} [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α k} {l m m' r} {a b : α} :
     IsFold op neutral v l m a → IsFold op neutral v m' r b → m = m' → IsFold op neutral v l r (op a b) := by
-  rintro h₁ h₂ rfl
-  exact h₁.concat h₂
+  grind [IsFold.concat]
 
 theorem IsFold.of_congr {op : α → α → α} {neutral : α} {v : Vector α k} {l r l' r' a a'} (hl : l = l') (hr : r = r') (ha : a = a') :
     IsFold op neutral v l r a → IsFold op neutral v l' r' a' := by
-  subst hl hr ha
-  exact id
+  grind
 
 /-!
 # `below`
@@ -74,6 +72,7 @@ theorem IsFold.of_congr {op : α → α → α} {neutral : α} {v : Vector α k}
 `below d i` is just `2 ^ d * i`. Since this expression plays a central role in the
 verification of the `query` operation, it makes sense to develop explicit API for it.
 -/
+@[grind]
 def below (d i : Nat) : Nat :=
   2 ^ d * i
 
@@ -84,16 +83,14 @@ theorem below_zero {i : Nat} : below 0 i = i := by
 @[grind =]
 theorem below_add_one_div_two_of_mod_two_eq_zero {d i : Nat} (hi : i % 2 = 0) :
     below (d + 1) (i / 2) = below d i := by
-  have hi : i = 2 * (i / 2) := by grind
-  grind [below]
+  grind => have hi : i = 2 * (i / 2); finish
 
 @[grind =]
 theorem below_add_one_div_two_of_mod_two_ne_zero {d i : Nat} (hi : i % 2 ≠ 0) :
     below (d + 1) (i / 2) = below d (i - 1) := by
-  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j  + 1 :=
-    ⟨i / 2, Nat.mod_two_ne_zero.1 hi ▸ (Nat.div_add_mod i 2).symm⟩
+  obtain ⟨j, rfl⟩ : ∃ j, i = 2 * j  + 1 := ⟨i / 2, by grind⟩
   have : (2 * j + 1) / 2 = j := by grind
-  grind [below]
+  grind
 
 /-!
 # `HasHeight`
@@ -150,7 +147,7 @@ theorem isFold_queryLoop {op : α → α → α} {neutral : α} [Associative op]
   | case1 l r resl resr hlr₀ hlr resl' resr' ih =>
     subst resl' resr'; apply ih (i + 1) <;> clear ih
     · intro k hkl hkr
-      apply hv.hasHeight_succ <;> grind [below]
+      apply hv.hasHeight_succ <;> grind
     · split
       · grind
       · apply (hresl.concat (hheight ..).isFold).of_congr <;> grind
