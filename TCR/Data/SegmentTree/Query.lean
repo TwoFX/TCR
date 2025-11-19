@@ -146,16 +146,14 @@ theorem isFold_queryLoop {op : α → α → α} {neutral : α} [Associative op]
   fun_induction query.loop generalizing i with
   | case1 l r resl resr hlr₀ hlr resl' resr' ih =>
     subst resl' resr'; apply ih (i + 1) <;> clear ih
-    · intro k hkl hkr
-      apply hv.hasHeight_succ <;> grind
+    · grind [IsSegmentTree.hasHeight_succ]
     · split
       · grind
       · apply (hresl.concat (hheight ..).isFold).of_congr <;> grind
     · split
       · grind
       · apply ((hheight (r - 1) ..).isFold.concat_of_eq hresr _).of_congr <;> grind
-  | case2 l r resl resr h₁ h₂ => exact hresl.concat_of_eq hresr (by grind)
-
+  | case2 l r resl resr h₁ h₂ => grind [IsFold.concat]
 
 theorem isFold_query {op : α → α → α} {neutral : α} [Associative op] [LawfulIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
