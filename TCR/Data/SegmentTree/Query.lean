@@ -153,16 +153,17 @@ theorem isFold_queryLoop {op : α → α → α} {neutral : α} [Associative op]
       apply hv.hasHeight_succ <;> grind [below]
     · split
       · grind
-      · exact (hresl.concat (hheight l (by simp) hlr).isFold).of_congr rfl (by grind) rfl
+      · apply (hresl.concat (hheight ..).isFold).of_congr <;> grind
     · split
       · grind
-      · exact ((hheight (r - 1) (by omega) (by omega)).isFold.concat_of_eq hresr (by grind)).of_congr (by grind) rfl rfl
+      · apply ((hheight (r - 1) ..).isFold.concat_of_eq hresr _).of_congr <;> grind
   | case2 l r resl resr h₁ h₂ => exact hresl.concat_of_eq hresr (by grind)
+
 
 theorem isFold_query {op : α → α → α} {neutral : α} [Associative op] [LawfulIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v) {l r : Nat} {hlr : l ≤ r} {hr : r ≤ n} :
     IsFold op neutral v (l + n) (r + n) (query op neutral v l r hlr hr) :=
-  isFold_queryLoop hv 0 (fun k hkl hkr => hasHeight_zero (by omega)) (by simp) (by simp)
+  isFold_queryLoop hv 0 (fun k hkl hkr => hasHeight_zero (by grind)) (by simp) (by simp)
 
 theorem extract_underlying {v : Vector α (n + n)} :
     (underlying v).extract l r = (v.extract (l + n) (r + n)).cast (by omega) := by
