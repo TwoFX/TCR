@@ -137,15 +137,15 @@ theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
 theorem isFold_queryLoop {op : α → α → α} {neutral : α} [Associative op] [LawfulRightIdentity op neutral]
     {v : Vector α (n + n)} (hv : IsSegmentTree op neutral v)
     -- (n_is_power_of_two : ∃ d, n = 2 ^ d)
-    {l₀ r₀ : Nat} {resl resr : α} (i : Nat) {l r : Nat} {hlr}
-    (hheight : ∀ k, l ≤ k → k < r → HasHeight op neutral v i k)
-    (hresl : IsFold op neutral v (l₀ + n) (below i l) resl)
-    (hresr : IsFold op neutral v (below i r) (r₀ + n) resr) :
+    {l₀ r₀ : Nat} {resl resr : α} (d : Nat) {l r : Nat} {hlr}
+    (hheight : ∀ k, l ≤ k → k < r → HasHeight op neutral v d k)
+    (hresl : IsFold op neutral v (l₀ + n) (below d l) resl)
+    (hresr : IsFold op neutral v (below d r) (r₀ + n) resr) :
     IsFold op neutral v (l₀ + n) (r₀ + n) (query.loop op v l r resl resr hlr) := by
   -- clear n_is_power_of_two
-  fun_induction query.loop generalizing i with
+  fun_induction query.loop generalizing d with
   | case1 l r resl resr hlr₀ hlr resl' resr' ih =>
-    subst resl' resr'; apply ih (i + 1) <;> clear ih
+    subst resl' resr'; apply ih (d + 1) <;> clear ih
     · grind [IsSegmentTree.hasHeight_succ]
     · split
       · grind
