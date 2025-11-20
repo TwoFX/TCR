@@ -149,7 +149,7 @@ theorem isFold_queryLoop {op : α → α → α} {neutral : α} [Associative op]
     · grind [IsSegmentTree.hasHeight_succ]
     · split
       · grind
-      · apply (hresl.concat (hheight ..).isFold).of_congr <;> grind
+      · apply (hresl.concat (hheight l ..).isFold).of_congr <;> grind
     · split
       · grind
       · apply ((hheight (r - 1) ..).isFold.concat_of_eq hresr _).of_congr <;> grind
