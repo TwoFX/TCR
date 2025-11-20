@@ -60,12 +60,12 @@ theorem IsSegmentTree.underlying_inj (v v' : Vector α (n + n))
     rw [hv.op_eq _ (by grind) (by grind), hv'.op_eq _ (by grind) (by grind)]
     have := ih (2 * i + 1 - n)
     have := ih (2 * i - n)
-    grind (splits := 12) [getElem_eq_getElem_underlying]
+    grind (splits := 13) [getElem_eq_getElem_underlying]
 
 @[simp]
 theorem underlying_modify {op : α → α → α} {v : Vector α (n + n)} {i : Nat} {hi : i < n} {f : α → α} :
     underlying (modify op v i hi f) = (underlying v).modify i f := by
-  suffices ∀ (vec : Vector α (n + n)) idx hidx, underlying (modify.loop op i hi f vec idx hidx) = underlying vec by
+  suffices ∀ (vec : Vector α (n + n)) idx hidx, underlying (modify.loop op i hi vec idx hidx) = underlying vec by
     simp only [modify, this]
     simp only [underlying, Vector.modify_cast, Vector.cast_eq_cast, Vector.cast_rfl]
     ext j hj

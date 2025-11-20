@@ -118,7 +118,7 @@ theorem HasHeight.succ {op : α → α → α} {neutral : α}
     (heq : v[i] = op v[2 * i] v[2 * i + 1]) :
     HasHeight op neutral v (depth + 1) i where
   lt := by have := hright.lt; omega
-  isFold := by refine (hleft.isFold.concat hright.isFold).of_congr ?_ ?_ heq.symm <;> grind [below]
+  isFold := by refine (hleft.isFold.concat hright.isFold).of_congr ?_ ?_ heq.symm <;> grind
 
 theorem IsSegmentTree.hasHeight_succ {op : α → α → α} {neutral : α}
     [Associative op] [LawfulRightIdentity op neutral]
